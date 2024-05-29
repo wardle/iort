@@ -8,8 +8,6 @@
 
 Most user-facing OMOP tools depend upon `R`, but `iort` is written in Clojure and runs on the JVM, and so is also usable from other JVM languages such as Java. `iort` can be run from the command-line as a runnable 'uberjar', or from directly source code if Clojure is installed.
 
-For example, the initialisation of database tables, indexes and constraints is generated using `R` in the open-source repository [https://github.com/OHDSI/CommonDataModel](https://github.com/OHDSI/CommonDataModel), but the SQL statements cannot be readily executed independently as they include placeholders for the `R` toolchain to complete. The specifications for the CDM are actually recorded in CSV files, but these are processed to generate markdown and the markdown processed into parameterised SQL DDL statements, which are processed by the `R` toolchain to execute database-specific DDLs. Some of the `R` toolchain actually uses RJava to consume OHDSI Java libraries such as [SqlRender](https://github.com/OHDSI/SqlRender). 
-
 Instead `iort` uses a simpler approach and generates DDL statements directly from the canonical CSV specifications.
 
 `iort` is designed to be composable with a number of other healthcare related libraries and tools:
@@ -26,7 +24,7 @@ Instead `iort` uses a simpler approach and generates DDL statements directly fro
 * [codelists](https://github.com/wardle/codelists) - declarative codelists for defining cohorts based on SNOMED CT, ECL, ATC codes and ICD-10.
 
 These tools follow a similar pattern in that they provide:
-
+  
 * a suite of functions that can be used as a library within a larger application
 * command-line accessible tools
 * a graph API that allows traversal across and between each independent service
@@ -41,5 +39,13 @@ These tools follow a similar pattern in that they provide:
 * Provides a JVM hosted library for simplifying data pipelines that extract, transform and load data into a database based on the OMOP CDN.
 * Provides a FHIR terminology facade around OMOP vocabularies
 
+
+It is therefore possible to build an `iort` pipeline that will initialise and populate a database with the OMOP CDM, and execute your own custom logic to extract and transform data from potentially multiple source systems, and potentially making use of the tools above for that process of normalisation, and write into a CDM. Likewise, one might instead use `iort` as part of a real-time analytics pipeline to take a feed from, for example, Apache Kafka, to transform and insert into a CDM-based database.
+
+# Why not use the `R` based OHDSI toolchain?
+
+The current OMOP toolchain has a variety of steps. For example, the initialisation of database tables, indexes and constraints is generated using `R` in the open-source repository [https://github.com/OHDSI/CommonDataModel](https://github.com/OHDSI/CommonDataModel), but the SQL statements cannot be readily executed independently as they include placeholders for the `R` toolchain to complete. The specifications for the CDM are actually recorded in CSV files, but these are processed to generate markdown and the markdown processed into parameterised SQL DDL statements, which are processed by the `R` toolchain to execute database-specific DDLs. Some of the `R` toolchain actually uses RJava to consume OHDSI Java libraries such as [SqlRender](https://github.com/OHDSI/SqlRender).
+
+In my view, all of those steps make the process of database initialisation more complex, and more difficult to reproduce in data pipelines. I have a strong preference for automation, and simplicity. Many of my design decisions are based upon wishing to create potentially ephemeral OMOP CDM-based databases, such as file-based databases based on SQLite created on demand for end-users, as well as the more conventional approach of looking after a single carefully maintained observational analytics database. For that, I need to be able to initialise and populate a CDM database on demand from operational clinical systems, and that means needing to generate DDL SQL statements on the fly without depending on installing `R`.
 
 
