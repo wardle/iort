@@ -53,14 +53,29 @@
                  repeat)
             (rest csv-data)))))
 
+(def datatypes
+  {"datetime" "timestamp"})
+
 (defn create-field-sql
-  "Given a table field specification"
-  [{:keys [cdmFieldName isRequired isForeignKey isPrimaryKey cdmDatatype]}]
+  "Given a table field specification, return the :with-columns clauses for
+  a :create-table operation."
+  [{:keys [cdmFieldName isRequired isPrimaryKey cdmDatatype]}]
   (remove nil?
           [(keyword cdmFieldName)
-           (keyword cdmDatatype)
+           (keyword (get datatypes cdmDatatype cdmDatatype))
            (when (= isPrimaryKey "Yes") [:primary-key])
            (if (= isRequired "Yes") [:not nil] :null)]))
+
+(defn foreign-key-sql
+  [{:keys [cdmFieldName isForeignKey fkTableName fkFieldName]}]
+  (when (= isForeignKey "Yes")
+    [[:foreign-key (keyword cdmFieldName)] [:references (keyword fkTableName) (keyword fkFieldName)]]))
+
+(defn foreign-keys-sql
+  [table-fields]
+  (->> table-fields
+       (filter #(= "Yes" (:isForeignKey %)))
+       (map foreign-key-sql)))
 
 (defn create-table-sql
   [table-fields]
@@ -68,15 +83,17 @@
     (when (not-every? #(= table-name (:cdmTableName %)) table-fields)
       (throw (ex-info "all fields must relate to the same table" {:fields table-fields})))
     {:create-table (keyword table-name)
-     :with-columns (mapv create-field-sql table-fields)}))
+     :with-columns (into (mapv create-field-sql table-fields)
+                         (foreign-keys-sql table-fields))}))
 
 (defn create-tables-sql
   "Return a sequence of create table SQL DDL statements for the CDM version
   specified, or the default version."
   ([]
-   (create-tables-sql nil))
-  ([version-string]
-   (let [fields (read-csv (io/resource (:fields (cdm-version (or version-string default-cdm-version)))))
+   (create-tables-sql {}))
+  ([{:keys [version-string]}]
+   (let [cdm (cdm-version (or version-string default-cdm-version))
+         fields (read-csv (io/resource (:fields cdm)))
          fields-by-table (group-by :cdmTableName fields)]
      (mapv create-table-sql (vals fields-by-table)))))
 
@@ -85,5 +102,6 @@
   (cdm-version "5.4")
   (def all-table-fields (let [fields (read-csv (io/resource (:fields (cdm-version "5.4"))))]
                           (group-by :cdmTableName fields)))
-  (sql/format (create-table-sql (get all-table-fields "vocabulary")))
+  (sql/format (create-table-sql (get all-table-fields "observation")))
+  (foreign-keys-sql (get all-table-fields "observation"))
   (mapv sql/format (create-tables-sql)))
