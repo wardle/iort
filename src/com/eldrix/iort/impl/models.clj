@@ -78,7 +78,7 @@
   ([version-string]
    (let [fields (read-csv (io/resource (:fields (cdm-version (or version-string default-cdm-version)))))
          fields-by-table (group-by :cdmTableName fields)]
-     (mapv (comp sql/format create-table-sql) (vals fields-by-table)))))
+     (mapv create-table-sql (vals fields-by-table)))))
 
 (comment
   supported-cdm-versions
@@ -86,4 +86,4 @@
   (def all-table-fields (let [fields (read-csv (io/resource (:fields (cdm-version "5.4"))))]
                           (group-by :cdmTableName fields)))
   (sql/format (create-table-sql (get all-table-fields "vocabulary")))
-  (create-tables-sql nil))
+  (mapv sql/format (create-tables-sql)))
