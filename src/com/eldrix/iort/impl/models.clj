@@ -61,6 +61,7 @@
             (rest csv-data)))))
 
 (def datatypes
+  "A map of OMOP CDM datatypes to SQL types"
   {"datetime" "timestamp"})
 
 (defn create-field-sql
