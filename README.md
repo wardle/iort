@@ -50,7 +50,7 @@ It will therefore possible to build an `iort` pipeline that will initialise and 
 - [x] Generate DDL statements to create database schema
 - [x] Generate DDL statements to add and remove database constraints
 - [x] Generate DDL statements to add and remove database indices
-- [ ] Add optional dependencies for different JDBC drivers
+- [x] Add optional dependencies for different JDBC drivers
 - [ ] Set up GitHub actions to test against a matrix of versions and databases
 - [ ] Add code to read and parse the CDM v5 vocabulary definitions that can be downloaded from the OHDSI Athena service.
 - [ ] Provide a Clojure API to aid in transforming arbitrary source data into the OMOP CDM
