@@ -122,6 +122,31 @@
   (->> table-fields
        (filter #(= "Yes" (:isForeignKey %)))
        (map drop-fk-constraints-sql)))
+
+(defn idx-name
+  [{:keys [cdmTableName cdmFieldName]}]
+  (keyword (str "idx_" cdmTableName "_" cdmFieldName)))
+
+(defn add-idx-sql
+  [{:keys [cdmTableName cdmFieldName] :as  field}]
+  {:create-index [(idx-name field) [(keyword cdmTableName) (keyword cdmFieldName)]]})
+
+(defn drop-idx-sql
+  [field]
+  {:drop-index (idx-name field)})
+
+(defn add-table-indices
+  [table-fields]
+  (->> table-fields
+       (filter (fn [{:keys [cdmFieldName]}] (str/ends-with? cdmFieldName "_id")))
+       (map add-idx-sql)))
+
+(defn drop-table-indices
+  [table-fields]
+  (->> table-fields
+       (filter (fn [{:keys [cdmFieldName]}] (str/ends-with? cdmFieldName "_id")))
+       (map drop-idx-sql)))
+
 (s/fdef model-structures
   :args (s/cat :config (s/? ::config)))
 (defn model-structures
@@ -168,6 +193,15 @@
   the CDM version specified, or the default if omitted."
   ([] (drop-constraints-sql {}))
   ([config] (mapcat drop-table-constraints-sql (map :fields (vals (model-structures config))))))
+
+(defn add-indices-sql
+  ([] (add-indices-sql {}))
+  ([config] (mapcat add-table-indices (map :fields (vals (model-structures config))))))
+
+(defn drop-indices-sql
+  ([] (drop-indices-sql {}))
+  ([config] (mapcat drop-table-indices (map :fields (vals (model-structures config))))))
+
 (comment
   (require '[clojure.spec.test.alpha :as stest])
   (stest/instrument)
@@ -179,6 +213,8 @@
   (mapv sql/format (create-tables-sql))
   (mapv sql/format (add-table-constraints-sql (get all-table-fields "observation")))
   (mapv sql/format (add-constraints-sql))
+  (mapv sql/format (add-indices-sql))
+  (mapv sql/format (drop-indices-sql))
   (mapv sql/format (drop-constraints-sql {:cdm-version "5.3"}))
   (mapv sql/format (drop-tables-sql))
 
