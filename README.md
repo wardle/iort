@@ -48,7 +48,7 @@ It will therefore possible to build an `iort` pipeline that will initialise and 
 `iort` is a new project and under active development. It is not yet functional but is being developed in the open.
 
 - [x] Generate DDL statements to create database schema
-- [ ] Generate DDL statements to add and remove database constraints
+- [x] Generate DDL statements to add and remove database constraints
 - [ ] Generate DDL statements to add and remove database indices
 - [ ] Add optional dependencies for different JDBC drivers
 - [ ] Set up GitHub actions to test against a matrix of versions and databases
