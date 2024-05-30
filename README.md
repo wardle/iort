@@ -33,19 +33,38 @@ These tools follow a similar pattern in that they provide:
 
 `iort` will provide both a library and a command-line tool to support interoperable outcomes research:
 
-* Download and execute Data Definition Language (DDL) statements to initialise a database with the OMOP CDM.
+* Generate and execute Data Definition Language (DDL) statements to initialise a database with the OMOP CDM with 
+on-demand addition and removal of database constraints and indexes
 * Import OMOP vocabularies downloaded from the [OHDSI Athena service](https://athena.ohdsi.org).
 * Provides a JVM hosted library and server for making use of OMOP data, including vocabularies
 * Provides a JVM hosted library for simplifying data pipelines that extract, transform and load data into a database based on the OMOP CDN.
 * Provides a FHIR terminology facade around OMOP vocabularies
 
 
-It is therefore possible to build an `iort` pipeline that will initialise and populate a database with the OMOP CDM, and execute your own custom logic to extract and transform data from potentially multiple source systems, and potentially making use of the tools above for that process of normalisation, and write into a CDM. Likewise, one might instead use `iort` as part of a real-time analytics pipeline to take a feed from, for example, Apache Kafka, to transform and insert into a CDM-based database.
+It will therefore possible to build an `iort` pipeline that will initialise and populate a database with the OMOP CDM, and execute your own custom logic to extract and transform data from potentially multiple source systems, and potentially making use of the tools above for that process of normalisation, and write into a CDM. Likewise, one might instead use `iort` as part of a real-time analytics pipeline to take a feed from, for example, Apache Kafka, to transform and insert into a CDM-based database.
+
+# Current development roadmap
+
+`iort` is a new project and under active development. It is not yet functional but is being developed in the open.
+
+- [x] Generate DDL statements to create database schema
+- [ ] Generate DDL statements to add and remove database constraints
+- [ ] Generate DDL statements to add and remove database indices
+- [ ] Add optional dependencies for different JDBC drivers
+- [ ] Set up GitHub actions to test against a matrix of versions and databases
+- [ ] Add code to read and parse the CDM v5 vocabulary definitions that can be downloaded from the OHDSI Athena service.
+- [ ] Provide a Clojure API to aid in transforming arbitrary source data into the OMOP CDM
+- [ ] Build CLI entry point with options to generate or execute SQL
+- [ ] Add a CDM HTTP server API to allow clients to consume CDM data if direct SQL access insufficient
+- [ ] Add a Clojure API to provide a FHIR facade around the core CDM vocabularies, potentially usable by [https://github.com/wardle/hades](https://github.com/wardle/hades) - requiring a trivial implementation
+- [ ] Add ability to build an uberjar with all necessary database drivers for a 'swiss-army knife' approach
+- [ ] Add automation to copy CDM data from one database to another, and make available via CLI
+
 
 # Why not use the `R` based OHDSI toolchain?
 
 The current OMOP toolchain has a variety of steps. For example, the initialisation of database tables, indexes and constraints is generated using `R` in the open-source repository [https://github.com/OHDSI/CommonDataModel](https://github.com/OHDSI/CommonDataModel), but the SQL statements cannot be readily executed independently as they include placeholders for the `R` toolchain to complete. The specifications for the CDM are actually recorded in CSV files, but these are processed to generate markdown and the markdown processed into parameterised SQL DDL statements, which are processed by the `R` toolchain to execute database-specific DDLs. Some of the `R` toolchain actually uses RJava to consume OHDSI Java libraries such as [SqlRender](https://github.com/OHDSI/SqlRender).
 
-In my view, all of those steps make the process of database initialisation more complex, and more difficult to reproduce in data pipelines. I have a strong preference for automation, and simplicity. Many of my design decisions are based upon wishing to create potentially ephemeral OMOP CDM-based databases, such as file-based databases based on SQLite created on demand for end-users, as well as the more conventional approach of looking after a single carefully maintained observational analytics database. For that, I need to be able to initialise and populate a CDM database on demand from operational clinical systems, and that means needing to generate DDL SQL statements on the fly without depending on installing `R`.
+In my view, all of those steps make the process of database initialisation more complex, and more difficult to reproduce in data pipelines. I have a strong preference for automation, and simplicity. Many of my design decisions are based upon wishing to create potentially ephemeral OMOP CDM-based databases, such as file-based databases based on SQLite created on demand for end-users, as well as the more conventional approach of looking after a single carefully maintained observational analytics database. For that, I need to be able to initialise and populate a CDM database on demand from operational clinical systems, and that means needing to generate DDL SQL statements on the fly without depending on installing `R`. 
 
 
