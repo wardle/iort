@@ -6,15 +6,14 @@
 (defn test-up-down
   [db config]
   (let [conn (jdbc/get-connection db)]
-    (run! #(jdbc/execute! conn %) (iort/create-tables-sql config))
-    (run! #(jdbc/execute! conn %) (iort/add-constraints-sql config))
-    (run! #(jdbc/execute! conn %) (iort/add-indices-sql config))
-    (run! #(jdbc/execute! conn %) (iort/drop-indices-sql config))
-    (run! #(jdbc/execute! conn %) (iort/drop-constraints-sql config))
-    (run! #(jdbc/execute! conn %) (iort/drop-tables-sql config))))
+    (run! #(jdbc/execute! conn %) (iort/create-database-sql config))
+    (run! #(jdbc/execute! conn %) (iort/drop-database-sql config))))
 
-(deftest test-sqlite
+(deftest test-unsupported-version
+  (is (thrown? clojure.lang.ExceptionInfo (test-up-down "jdbc:sqlite:test.db" {:dialect :sqlite :cdm-version "invalid"}))))
+
+(deftest ^:sqlite test-sqlite
   (test-up-down "jdbc:sqlite:test.db" {:dialect :sqlite}))
 
-(deftest test-postgresql
+(deftest ^:postgresql test-postgresql
   (test-up-down {:dbtype "postgresql" :dbname "omop_cdm"} {:dialect :postgresql}))
