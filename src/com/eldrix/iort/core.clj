@@ -3,8 +3,7 @@
   (:require
    [clojure.spec.alpha :as s]
    [com.eldrix.iort.impl.sql :as cdm-sql]
-   [clojure.spec.test.alpha :as stest]
-   [honey.sql :as sql]))
+   [clojure.spec.test.alpha :as stest]))
 
 (s/fdef create-tables-sql
   :args (s/cat :config ::config))
