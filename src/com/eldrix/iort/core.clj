@@ -70,6 +70,18 @@
   [config]
   (map cdm-sql/format (cdm-sql/drop-indices-sql config)))
 
+(defn create-database-sql
+  [config]
+  (concat (create-tables-sql config)
+          (add-constraints-sql config)
+          (add-indices-sql config)))
+
+(defn drop-database-sql
+  [config]
+  (concat (drop-indices-sql config)
+          (drop-constraints-sql config)
+          (drop-tables-sql config)))
+
 (comment
   (clojure.spec.test.alpha/instrument)
   (create-tables-sql {})
@@ -80,4 +92,7 @@
   (add-indices-sql {})
   (drop-constraints-sql {})
   (drop-tables-sql {})
-  (drop-indices-sql {}))
+  (drop-indices-sql {})
+  (create-database-sql {:dialect :sqlite})
+  (drop-database-sql {}))
+
