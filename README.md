@@ -6,7 +6,7 @@
 
 `iort` is a library and command-line utility to make use of the OMOP CDM.
 
-Most current user-facing OMOP tools depend upon `R`, but `iort` is written in Clojure and runs on the JVM, and so is also usable from other JVM languages such as Java. `iort` can be run from the command-line as a runnable 'uberjar', or from directly source code if Clojure is installed.
+Most current user-facing OMOP CDM tools depend upon `R`, but `iort` is written in Clojure and runs on the JVM, and so is also usable from other JVM languages such as Java. `iort` can be run from the command-line as a runnable 'uberjar', or from directly source code if Clojure is installed.
 
 As such, `iort` uses a simpler approach than the OHDSI tools, generating DDL statements directly from the canonical CSV specifications.
 
@@ -28,6 +28,9 @@ These tools follow a similar pattern in that they provide:
 * a suite of functions that can be used as a library within a larger application
 * command-line accessible tools
 * a graph API that allows traversal across and between each independent service
+
+I need to take healthcare data from multiple sources, transform and normalise those data, and aggregate to support direct care and analytics. As the CDM creates a 'standard' schema for healthcare data, we can use CDM as an intermediary data format. This would not work unless you also standardise the vocabularies in use; having ready access to advanced SNOMED CT tools such as `hermes` in conjunction with other sources of reference data (e.g. the UK dictionary of medicines and devices, the UK's organisational data for healthcare sites/locations, as well as the CDM vocabularies facilitates creating ['pluripotent data'](https://wardle.org/strategy/2023/10/03/pluripotent-data.html). You can, of course, use `iort` without using `hermes` or `dmd`. 
+
 
 # Intended functionality
 
