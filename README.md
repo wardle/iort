@@ -54,7 +54,7 @@ It will therefore possible to build an `iort` pipeline that will initialise and 
 - [ ] Set up GitHub actions to test against a matrix of versions and databases
 - [ ] Add code to read and parse the CDM v5 vocabulary definitions that can be downloaded from the OHDSI Athena service.
 - [ ] Provide a Clojure API to aid in transforming arbitrary source data into the OMOP CDM
-- [ ] Build CLI entry point with options to generate or execute SQL
+- [x] Build CLI entry point with options to generate or execute SQL
 - [ ] Add a CDM HTTP server API to allow clients to consume CDM data if direct SQL access insufficient
 - [ ] Add a Clojure API to provide a FHIR facade around the core CDM vocabularies, potentially usable by [https://github.com/wardle/hades](https://github.com/wardle/hades) - requiring a trivial implementation
 - [ ] Add ability to build an uberjar with all necessary database drivers for a 'swiss-army knife' approach
