@@ -31,6 +31,8 @@ These tools follow a similar pattern in that they provide:
 
 I need to take healthcare data from multiple sources, transform and normalise those data, and aggregate to support direct care and analytics. As the CDM creates a 'standard' schema for healthcare data, we can use CDM as an intermediary data format. This would not work unless you also standardise the vocabularies in use; having ready access to advanced SNOMED CT tools such as `hermes` in conjunction with other sources of reference data (e.g. the UK dictionary of medicines and devices, the UK's organisational data for healthcare sites/locations, as well as the CDM vocabularies facilitates creating ['pluripotent data'](https://wardle.org/strategy/2023/10/03/pluripotent-data.html). You can, of course, use `iort` without using `hermes` or `dmd`. 
 
+For example, I supplement the CDM standard vocabulary with other tooling so that I can make sense of the latest data. For example, there will be SNOMED concepts in the UK extension that are in the standard vocabulary, and I define cohorts using an expressive mix of ICD-10, OPCS, ATC and SNOMED CT, and I need to make use of historical associations. As such, only using the OMOP CDM vocabularies available from Athena is insufficient. Composing different data-orientated tools is important and useful.
+
 
 # Intended functionality
 
