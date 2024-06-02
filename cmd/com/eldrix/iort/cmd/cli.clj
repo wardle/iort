@@ -38,6 +38,12 @@
                 :add-constraints :drop-constraints
                 :add-indexes :drop-indexes})
 
+(defn jdbc-url->dialect
+  [url]
+  (cond
+    (str/starts-with? url "jdbc:sqlite:") :sqlite
+    (str/starts-with? url "jdbc:postgresql:") :postgresql))
+
 (defn parse-opts
   "Parse iort command line parameters. Returns a map with keys:
   :commands  - a sequence of commands to execute
@@ -49,6 +55,8 @@
   [args]
   (let [{:keys [options arguments errors summary] :as parsed} (cli/parse-opts args cli-options)]
     (cond-> (assoc parsed :usage (usage summary))
+      (and (not (:dialect options)) (:jdbc-url options))
+      (update :options assoc :dialect (jdbc-url->dialect (:jdbc-url options)))
       (not (some commands (keys options)))
       (assoc :errors ["No command specified"])
       (:create options)
@@ -57,4 +65,4 @@
       (update :options assoc :drop-tables true :drop-constraints true :drop-indexes true))))
 
 (comment
-  (parse-opts (str/split "--dialect sqlite --cdm-version 5.4 --create" #"\s")))
+  (parse-opts (str/split "-u jdbc:sqlite:test3.db --cdm-version 5.4 --create" #"\s")))
