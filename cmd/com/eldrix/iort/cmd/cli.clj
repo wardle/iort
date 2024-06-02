@@ -34,18 +34,19 @@
    ["-h" "--help"]])
 
 (defn parse-opts
+  "Parse iort command line parameters. Returns a map with keys:
+  :options   - map of parsed options and values
+  :arguments - vector of unprocessed command line arguments
+  :errors    - sequence of errors
+  :summary   - string containing minimal options summary 
+  :usage     - string containing full command line usage"
   [args]
   (let [{:keys [options arguments errors summary] :as parsed} (cli/parse-opts args cli-options)]
     (cond-> (assoc parsed :usage (usage summary))
       (:create options)
-      (-> (assoc-in [:options :create-tables] true)
-          (assoc-in [:options :add-constraints] true)
-          (assoc-in [:options :add-indexes] true)))))
+      (update :options assoc :create-tables true :add-constraints true :add-indexes true)
+      (:drop options)
+      (update :options assoc :drop-tables true :drop-constraints true :drop-indexes true))))
 
 (comment
-  (parse-opts (str/split "--dialect sqlite --cdm-version 5.4 --create" #"\s"))
-  (let [{:keys [options arguments errors summary] :as parsed} (cli/parse-opts (str/split "--dialect sqlite --cdm-version 5.4 --create" #"\s") cli-options)]
-
-    (clojure.pprint/pprint options)
-    (println "errors:" errors)
-    (println (usage summary))))
+  (parse-opts (str/split "--dialect sqlite --cdm-version 5.4 --create" #"\s")))
