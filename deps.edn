@@ -12,16 +12,12 @@
 
  :aliases
  {;; database drivers
-  :duckdb
-  {:extra-deps  {org.duckdb/duckdb_jdbc {:mvn/version "0.10.3"}}}
-  :sqlserver
-  {:extra-deps  {com.microsoft.sqlserver/mssql-jdbc {:mvn/version "12.7.0.jre11-preview"}}}
-  :oracle
-  {:extra-deps  {com.oracle.database.jdbc/ojdbc11 {:mvn/version "23.4.0.24.05"}}}
-  :postgresql
-  {:extra-deps  {org.postgresql/postgresql {:mvn/version "42.7.3"}}}
-  :sqlite
-  {:extra-deps  {org.xerial/sqlite-jdbc {:mvn/version "3.46.0.0"}}}
+  :duckdb     {:extra-deps  {org.duckdb/duckdb_jdbc             {:mvn/version "0.10.3"}}}
+  :oracle     {:extra-deps  {com.oracle.database.jdbc/ojdbc11   {:mvn/version "23.4.0.24.05"}}}
+  :postgresql {:extra-deps  {org.postgresql/postgresql          {:mvn/version "42.7.3"}}}
+  :snowflake  {:extra-deps  {net.snowflake/snowflake-jdbc       {:mvn/version "3.16.1"}}}
+  :sqlite     {:extra-deps  {org.xerial/sqlite-jdbc             {:mvn/version "3.46.0.0"}}}
+  :sqlserver  {:extra-deps  {com.microsoft.sqlserver/mssql-jdbc {:mvn/version "12.7.0.jre11-preview"}}}
 
   ;;
   ;;
