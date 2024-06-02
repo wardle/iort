@@ -3,7 +3,23 @@
   (:require
    [clojure.spec.alpha :as s]
    [com.eldrix.iort.impl.sql :as cdm-sql]
-   [clojure.spec.test.alpha :as stest]))
+   [clojure.spec.test.alpha :as stest]
+   [com.eldrix.iort.impl.cdm :as cdm]))
+
+(defn cdm-versions
+  "Return a set of supported versions.
+  e.g. 
+  ```
+  (cdm-versions)
+  =>
+  #{\" 5.4 \"}
+  ```"
+  []
+  (set (map :id cdm/supported-cdm-versions)))
+
+(def dialects
+  "Return a set of supported dialects."
+  cdm-sql/supported-dialects)
 
 (s/fdef create-tables-sql
   :args (s/cat :config ::config))
@@ -83,6 +99,7 @@
 
 (comment
   (clojure.spec.test.alpha/instrument)
+  (cdm-versions)
   (create-tables-sql {})
   (create-tables-sql {:cdm-version "5.3" :dialect :postgresql})
   (create-tables-sql {:cdm-version "5.4" :dialect :postgresql})
