@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [format])
   (:require
    [clojure.string :as str]
-   [com.eldrix.iort.impl.models :as cdm]
+   [com.eldrix.iort.impl.cdm :as cdm]
    [honey.sql :as sql]))
 
 (def default-datatypes

@@ -1,4 +1,4 @@
-(ns com.eldrix.iort.impl.models
+(ns com.eldrix.iort.impl.cdm
   (:require
    [clojure.data.csv :as csv]
    [clojure.java.io :as io]
