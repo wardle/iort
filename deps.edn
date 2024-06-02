@@ -35,7 +35,7 @@
                  ch.qos.logback/logback-classic {:mvn/version "1.5.6"}
                  io.pedestal/pedestal.service   {:mvn/version "0.6.4"}
                  io.pedestal/pedestal.jetty     {:mvn/version "0.6.4"}}
-   :main-opts   ["-m" "com.eldrix.hermes.cmd.core"]}
+   :main-opts   ["-m" "com.eldrix.iort.cmd.core"]}
 
   :dev
   {:extra-paths ["cmd" "test"]
