@@ -48,7 +48,9 @@ It will therefore possible to build an `iort` pipeline that will initialise and 
 
 # Current development roadmap
 
-`iort` is a new project and under active development. It is not yet functional but is being developed in the open.
+`iort` is a new project and under active development. It is not yet fully functional but is being developed in the open.
+
+Here is the current status:
 
 - [x] Generate DDL statements to create database schema
 - [x] Generate DDL statements to add and remove database constraints
