@@ -5,6 +5,17 @@
    [com.eldrix.iort.impl.cdm :as cdm]
    [honey.sql :as sql]))
 
+(def supported-dialects
+  "These are the databases that will be tested; it is likely other databases
+  with JDBC drivers would work. Any dialect-specific tweaks are provided 
+  within this namespace via multimethods."
+  #{:sqlite
+    :postgresql
+    :oracle
+    :duckdb
+    :snowflake
+    :sqlserver})
+
 (def default-datatypes
   "A map of OMOP CDM datatypes to SQL types"
   {"datetime"     "timestamp"
