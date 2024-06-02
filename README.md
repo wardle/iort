@@ -6,9 +6,9 @@
 
 `iort` is a library and command-line utility to make use of OMOP.
 
-Most user-facing OMOP tools depend upon `R`, but `iort` is written in Clojure and runs on the JVM, and so is also usable from other JVM languages such as Java. `iort` can be run from the command-line as a runnable 'uberjar', or from directly source code if Clojure is installed.
+Most current user-facing OMOP tools depend upon `R`, but `iort` is written in Clojure and runs on the JVM, and so is also usable from other JVM languages such as Java. `iort` can be run from the command-line as a runnable 'uberjar', or from directly source code if Clojure is installed.
 
-Instead `iort` uses a simpler approach and generates DDL statements directly from the canonical CSV specifications.
+As such, `iort` uses a simpler approach than the OHDSI tools, generating DDL statements directly from the canonical CSV specifications.
 
 `iort` is designed to be composable with a number of other healthcare related libraries and tools:
 
