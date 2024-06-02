@@ -61,6 +61,36 @@ It will therefore possible to build an `iort` pipeline that will initialise and 
 - [ ] Add automation to copy CDM data from one database to another, and make available via CLI
 
 
+# Getting started
+
+`iort` is only in the early stages of development, but it is already usable. You will need to [install Clojure](https://clojure.org/guides/install_clojure). Once `iort` is ready for a more formal release, I will provide an executable 'uberjar' that will contain multiple database drivers. 
+
+##### Directly create database tables using a JDBC URL:
+
+e.g. to create CDM version 5.4 database tables, indexes and constraints in a SQLite database called my-omop-cdm.db
+```bash
+clj -M:sqlite:run --cdm-version 5.4 --create --jdbc-url jdbc:sqlite:my-omop-cdm.db
+```
+
+e.g. to create CDM version 5.4 database tables, indexes and constraints in a PostgreSQL database, omop_cdm
+
+```bash
+clj -M:postgresql:run --cdm-version 5.4 --create --jdbc-url jdbc:postgresql:omop_cdm
+```
+
+###### Generate SQL DDL statements that you can execute manually, or via another means (such as psql)
+
+```bash
+clj -M:run --create --dialect postgresql
+```
+
+```bash
+clj -M:run --create --dialect sqlite
+```
+Databases such as SQLite cannot add foreign key constraints after database tables have been created, so you can give hints to `iort`
+so it generates the correct statements for the database type you are using.
+
+
 # Why not use the `R` based OHDSI toolchain?
 
 The current OMOP toolchain has a variety of steps. For example, the initialisation of database tables, indexes and constraints is generated using `R` in the open-source repository [https://github.com/OHDSI/CommonDataModel](https://github.com/OHDSI/CommonDataModel), but the SQL statements cannot be readily executed independently as they include placeholders for the `R` toolchain to complete. The specifications for the CDM are actually recorded in CSV files, but these are processed to generate markdown and the markdown processed into parameterised SQL DDL statements, which are processed by the `R` toolchain to execute database-specific DDLs. Some of the `R` toolchain actually uses RJava to consume OHDSI Java libraries such as [SqlRender](https://github.com/OHDSI/SqlRender).
