@@ -1,5 +1,5 @@
 (ns com.eldrix.iort.database-test
-  (:require [clojure.test :refer [deftest is run-test]]
+  (:require [clojure.test :refer [deftest is]]
             [com.eldrix.iort.core :as iort]
             [next.jdbc :as jdbc]))
 
