@@ -33,8 +33,14 @@
    [nil "--drop-indexes" "Drop database indexes"]
    ["-h" "--help"]])
 
+(def commands #{:create :drop
+                :create-tables :drop-tables
+                :add-constraints :drop-constraints
+                :add-indexes :drop-indexes})
+
 (defn parse-opts
   "Parse iort command line parameters. Returns a map with keys:
+  :commands  - a sequence of commands to execute
   :options   - map of parsed options and values
   :arguments - vector of unprocessed command line arguments
   :errors    - sequence of errors
@@ -43,6 +49,8 @@
   [args]
   (let [{:keys [options arguments errors summary] :as parsed} (cli/parse-opts args cli-options)]
     (cond-> (assoc parsed :usage (usage summary))
+      (not (some commands (keys options)))
+      (assoc :errors ["No command specified"])
       (:create options)
       (update :options assoc :create-tables true :add-constraints true :add-indexes true)
       (:drop options)
