@@ -1,6 +1,6 @@
 (ns com.eldrix.iort.impl.cdm
   (:require
-   [clojure.data.csv :as csv]
+   [charred.api :as csv]
    [clojure.java.io :as io]
    [clojure.spec.alpha :as s]
    [clojure.string :as str]))

@@ -1,6 +1,7 @@
 (ns com.eldrix.iort.impl.sql
   (:refer-clojure :exclude [format])
   (:require
+   [clojure.set :as set]
    [clojure.string :as str]
    [com.eldrix.iort.impl.cdm :as cdm]
    [honey.sql :as sql]))
@@ -123,6 +124,29 @@
        (filter (fn [{:keys [cdmFieldName]}] (str/ends-with? cdmFieldName "_id")))
        (map drop-idx-sql)))
 
+(defn prepared-upsert-sql
+  [{:keys [fields cdmTableName] :as table}]
+  (let [field-names (map :cdmFieldName fields)
+        field-names# (str/join "," field-names)
+        primary-keys (into #{} (comp (filter (fn [{:keys [isPrimaryKey]}] (= "Yes" isPrimaryKey))) (map :cdmFieldName)) fields)
+        primary-keys# (str/join "," primary-keys)
+        non-primary-keys (set/difference (set field-names) primary-keys)
+        non-primary-keys (str/join "," (map #(str % "=excluded." %) non-primary-keys))
+        placeholders (str/join "," (repeat (count field-names) "?"))]
+    (when (empty? primary-keys)
+      (throw (ex-info (str "cannot 'upsert' into table '" cdmTableName "' as no primary keys") table)))
+    [(str "INSERT INTO " cdmTableName
+          " (" field-names# ") VALUES (" placeholders ") "
+          " ON CONFLICT (" primary-keys# ") DO UPDATE SET " non-primary-keys)]))
+
+(defn prepared-insert-sql
+  [{:keys [fields cdmTableName]}]
+  (let [field-names (map :cdmFieldName fields)
+        field-names# (str/join "," field-names)
+        placeholders (str/join "," (repeat (count field-names) "?"))]
+    [(str "INSERT INTO " cdmTableName
+          " (" field-names# ") VALUES (" placeholders ")")]))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -146,6 +170,9 @@
   "Return SQL DDL statements to drop all indices from a CDM database."
   :dialect)
 
+(defmulti insert-sql
+  "Return SQL insert statement to insert data into the table specified. "
+  (fn [{:keys [dialect]} _table-name] dialect))
 ;;
 ;;
 ;;
@@ -185,7 +212,12 @@
   (mapcat add-table-indices (map :fields (vals (cdm/model-structures config)))))
 
 (defmethod drop-indices-sql :default
-  ([config] (mapcat drop-table-indices (map :fields (vals (cdm/model-structures config))))))
+  [config] (mapcat drop-table-indices (map :fields (vals (cdm/model-structures config)))))
+
+(defmethod insert-sql :default
+  [config table-name]
+  (some-> (get (cdm/model-structures config) table-name)
+          (prepared-insert-sql)))
 
 (defn format
   [x]
@@ -194,6 +226,9 @@
     (map? x)    (sql/format x)))
 
 (comment
+  (insert-sql {} "concept")
+  (insert-sql {} "observation")
+  (cdm/model-structures {})
   (map format (create-tables-sql {}))
   (map format (create-tables-sql {:dialect :sqlite}))
   (map format (add-constraints-sql {}))
