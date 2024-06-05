@@ -31,12 +31,14 @@
    [nil "--drop-tables" "Drop database tables"]
    [nil "--drop-constraints" "Drop database constraints"]
    [nil "--drop-indexes" "Drop database indexes"]
+   [nil "--vocab DIR" "Import vocabulary files from the directory specified"]
    ["-h" "--help"]])
 
 (def commands #{:create :drop
                 :create-tables :drop-tables
                 :add-constraints :drop-constraints
-                :add-indexes :drop-indexes})
+                :add-indexes :drop-indexes
+                :vocab})
 
 (defn jdbc-url->dialect
   [url]

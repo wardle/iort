@@ -38,9 +38,7 @@
           (if (and (seq batches#) (async/>!! ch (first batches#)))
             (recur (rest batches#))
             (when close? (async/close! ch)))))
-      (catch Exception e (println "ERROR" (.getMessage e))
-             (.printStackTrace e)
-             (println "exception data:" (ex-data e))))))
+      (catch Exception e (.printStackTrace e)))))
 
 (defn cdm-file [config f]
   (let [table-name (csv-filename->table-name (.getName f))]
