@@ -113,7 +113,7 @@ vocabulary files, and then add constraints and indexes.
 If you want to use SQLite:
 
 ```bash
-clj -M:sqlite:run -u jdbc:postgresql:omop_cdm.db --create --vocab ~/Downloads/vocabulary_download_v5
+clj -M:sqlite:run -u jdbc:sqlite:omop_cdm.db --create --vocab ~/Downloads/vocabulary_download_v5
 ```
 
 
