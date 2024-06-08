@@ -61,7 +61,8 @@ Here is the current status:
 - [x] Generate DDL statements to add and remove database indices
 - [x] Add optional dependencies for different JDBC drivers
 - [ ] Set up GitHub actions to test against a matrix of versions and databases
-- [ ] Add code to read and parse the CDM v5 vocabulary definitions that can be downloaded from the OHDSI Athena service.
+- [x] Add code to read and parse the CDM v5 vocabulary definitions that can be downloaded from the OHDSI Athena service.
+- [ ] Add options to select and create based on schema e.g. create tables only for 'CDM' or 'VOCAB' schema 
 - [ ] Provide a Clojure API to aid in transforming arbitrary source data into the OMOP CDM
 - [x] Build CLI entry point with options to generate or execute SQL
 - [ ] Add a CDM HTTP server API to allow clients to consume CDM data if direct SQL access insufficient
@@ -69,6 +70,8 @@ Here is the current status:
 - [ ] Add ability to build an uberjar with all necessary database drivers for a 'swiss-army knife' approach
 - [ ] Add automation to copy CDM data from one database to another, and make available via CLI
 
+
+As SQLite allows multiple connections to different databases, it would be possible to build one database containing the VOCAB tables, and then dynamically link another database with CDM tables. Other databases allow multiple schema.
 
 # Getting started
 
