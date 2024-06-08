@@ -5,6 +5,11 @@
    [clojure.spec.alpha :as s]
    [clojure.string :as str]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; CDM registry = supported CDM versions
+;;
+
 (s/def ::id string?)
 (s/def ::tables string?)
 (s/def ::fields string?)
@@ -20,31 +25,54 @@
     :fields "OMOP_CDMv5.4_Field_Level.csv"
     :tables "OMOP_CDMv5.4_Table_Level.csv"}])
 
-(def cdm-version-by-id
-  (reduce (fn [acc {:keys [id] :as x}] (assoc acc id x)) {} supported-cdm-versions))
-
 (when-not (s/valid? ::registry supported-cdm-versions)
   (throw (ex-info "invalid CDM registry" (s/explain-data ::registry supported-cdm-versions))))
 
 (def default-cdm-version "5.4")
 
-(s/def ::cdm-version (into #{} (map :id) supported-cdm-versions))
-(s/def ::config (s/keys :opt-un [::cdm-version]))
+(def cdm-version-by-id
+  (reduce (fn [acc {:keys [id] :as x}] (assoc acc id x)) {} supported-cdm-versions))
 
 (s/fdef cdm
-  :args (s/cat :v (s/? ::cdm-version)))
+  :args (s/cat :v (s/? ::cdmVersion)))
 (defn cdm
-  "Returns information about a specific CDM version, or the default if omitted.
-  For example,
+  "Returns information from the registry about a specific CDM version, or the
+  default if omitted. For example,
   ```
   (cdm \"5.4\")
-  ```"
+  ```
+  =>
+  {:id     \"5.4\"
+    :fields \"OMOP_CDMv5.4_Field_Level.csv\"
+    :tables \"OMOP_CDMv5.4_Table_Level.csv\"}"
   ([]
    (cdm nil))
   ([v]
    (if v
      (cdm-version-by-id v)
      (cdm default-cdm-version))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; CDM model specification
+;;
+;;
+
+(s/def ::cdmVersion (into #{} (map :id) supported-cdm-versions))
+(s/def ::cdmTableName string?)
+(s/def ::schema string?)
+(s/def ::isRequired #{"Yes" "No"})
+(s/def ::conceptPrefix string?)
+(s/def ::cdmFields (s/coll-of ::cdmField))
+(s/def ::cdmTableModel (s/keys :req-un [::cdmTableName ::schema ::isRequired ::conceptPrefix ::cdmFields]))
+(s/def ::cdmModel (s/map-of string? ::cdmTableModel))
+
+;; CDM configuration specification
+
+(s/def ::config (s/keys :opt-un [::cdmModel ::cdmVersion]))
+
+;;
+;; CDM models 
+;;
 
 (defn column-title->kw
   "Convert column title to a keyword. 
@@ -62,24 +90,56 @@
                  repeat)
             (rest csv-data)))))
 
-(s/fdef model-structures
-  :args (s/cat :config (s/? ::config)))
-(defn model-structures
-  "Return OMOP model structure definitions grouped by table name. 
-  Returns a map of CDM table name to the table definition. Each definition
-  is a close representation of the source Table_Level.csv but with an 
-  additional key ':fields' with data from Field_Level.csv for that table."
-  [{:keys [cdm-version] :as config}]
-  (let [{:keys [tables fields]} (cdm cdm-version)]
+(defn parse-yes-no [x]
+  (= "Yes" x))
+
+(defn parse-str [x]
+  (when-not (= "NA" x) x))
+
+(defn parse-int [x]
+  (when-not (= "NA" x) (parse-long x)))
+
+(def parsers
+  {:isPrimaryKey              parse-yes-no
+   :isForeignKey              parse-yes-no
+   :isRequired                parse-yes-no
+   :measurePersonCompleteness parse-yes-no})
+
+(defn parse-model [m]
+  (reduce-kv
+   (fn [acc k v]
+     (assoc acc k ((get parsers k parse-str) v)))
+   {} m))
+
+(defn model-structures*
+  [{:keys [cdmVersion] :as config}]
+  (let [{:keys [tables fields]} (cdm cdmVersion)]
     (if (and tables fields)
-      (let [fields-by-table (group-by :cdmTableName (read-csv (io/resource fields)))]
+      (let [fields-by-table (group-by :cdmTableName (map parse-model (read-csv (io/resource fields))))]
         (reduce (fn [acc {:keys [cdmTableName] :as table}]
-                  (assoc acc cdmTableName (assoc table :fields (get fields-by-table cdmTableName))))
-                {} (read-csv (io/resource tables))))
+                  (assoc acc cdmTableName (assoc table :cdmFields (get fields-by-table cdmTableName))))
+                {} (map parse-model (read-csv (io/resource tables)))))
       (throw (ex-info "invalid CDM version" config)))))
+
+(s/fdef with-model-structures
+  :args (s/cat :config (s/? ::config))
+  :ret  ::config)
+(defn with-model-structures
+  "Updates the configuration with OMOP model structures using key :cdmModel.
+  For convenience, returns its argument if cdmModel already defined.
+  The model specification is a map of CDM table name to the table definition. 
+  Each definition is a close representation of the source Table_Level.csv but 
+  with an  additional key ':cdmFields' with data from Field_Level.csv for 
+  that table. Some source data are parsed such as 'NA' to 'null', and 
+  'Yes' and 'No' to boolean."
+  [{:keys [cdmModel] :as config}]
+  (if cdmModel config (assoc config :cdmModel (model-structures* config))))
 
 (comment
   (require '[clojure.spec.test.alpha :as stest])
+  (map parse-model (read-csv (io/resource (:tables (cdm)))))
+  (read-csv (io/resource (:fields (cdm))))
+  (with-model-structures {})
   (stest/instrument)
   supported-cdm-versions
   (cdm "5.4")

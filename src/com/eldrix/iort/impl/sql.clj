@@ -4,7 +4,9 @@
    [clojure.set :as set]
    [clojure.string :as str]
    [com.eldrix.iort.impl.cdm :as cdm]
-   [honey.sql :as sql]))
+   [honey.sql :as sql])
+  (:import
+   (java.time.format DateTimeFormatter)))
 
 (def supported-dialects
   "These are the databases that will be tested; it is likely other databases
@@ -22,15 +24,31 @@
   {"datetime"     "timestamp"
    "varchar(MAX)" "text"})
 
+(defn parse-cdm-date [s]
+  (java.time.LocalDate/parse s DateTimeFormatter/BASIC_ISO_DATE))
+
+(def cdmDatatype->parser
+  {"float"    parse-double
+   "Integer"  parse-long                   ;; unfortunately the CDM datatypes are inconsistent on case
+   "integer"  parse-long
+   "date"     parse-cdm-date})
+
+(defn parsers
+  "Based on table fields, return a vector of parsers for import."
+  [table-fields]
+  (reduce (fn [acc {:keys [cdmDatatype]}]
+            (conj acc (get cdmDatatype->parser cdmDatatype identity)))
+          [] table-fields))
+
 (defn foreign-key-sql
   [{:keys [cdmFieldName isForeignKey fkTableName fkFieldName]}]
-  (when (= isForeignKey "Yes")
+  (when isForeignKey
     [[:foreign-key (keyword cdmFieldName)] [:references (keyword fkTableName) (keyword fkFieldName)]]))
 
 (defn foreign-keys-sql
   [table-fields]
   (->> table-fields
-       (filter #(= "Yes" (:isForeignKey %)))
+       (filter :isForeignKey)
        (map foreign-key-sql)))
 
 (defn create-field-sql
@@ -40,8 +58,8 @@
   (remove nil?
           [(keyword cdmFieldName)
            (keyword (get (or datatypes default-datatypes) cdmDatatype cdmDatatype))
-           (when (= isPrimaryKey "Yes") [:primary-key])
-           (if (= isRequired "Yes") [:not nil] :null)]))
+           (when isPrimaryKey [:primary-key])
+           (if isRequired [:not nil] :null)]))
 
 (defn create-table-sql
   "Given a CDM table specification, return SQL statements.
@@ -53,7 +71,7 @@
   (let [table-name (:cdmTableName (first table-fields))
         fields (mapv #(create-field-sql opts %) table-fields)]
     (when (not-every? #(= table-name (:cdmTableName %)) table-fields)
-      (throw (ex-info "all fields must relate to the same table" {:fields table-fields})))
+      (throw (ex-info "all fields must relate to the same table" {:cdmFields table-fields})))
     {:create-table (keyword table-name)
      :with-columns (if constraints ;; add foreign key constraints if required 
                      (into fields (foreign-keys-sql table-fields))
@@ -63,7 +81,7 @@
   [table-name]
   {:drop-table (keyword table-name)})
 
-;; register new honey sql clauses that clone the usage of the built-in modify-coumn clause
+;; register new honey sql clauses that clone the usage of the built-in modify-column clause
 (sql/register-clause! :add-constraint :modify-column :modify-column)
 (sql/register-clause! :drop-constraint :modify-column :modify-column)
 
@@ -74,7 +92,7 @@
 
 (defn add-fk-constraints-sql
   [{:keys [cdmTableName cdmFieldName isForeignKey fkTableName fkFieldName] :as field}]
-  (when-not (= isForeignKey "Yes")
+  (when-not isForeignKey
     (throw (ex-info "cannot generate a foreign key constraint" field)))
   {:alter-table    (keyword cdmTableName)
    :add-constraint [(fk-constraint-id field)
@@ -83,7 +101,7 @@
 
 (defn drop-fk-constraints-sql
   [{:keys [cdmTableName isForeignKey] :as field}]
-  (when-not (= isForeignKey "Yes")
+  (when-not isForeignKey
     (throw (ex-info "cannot generate a foreign key constraint" field)))
   {:alter-table     (keyword cdmTableName)
    :drop-constraint [(fk-constraint-id field)]})
@@ -91,13 +109,13 @@
 (defn add-table-constraints-sql
   [table-fields]
   (->> table-fields
-       (filter #(= "Yes" (:isForeignKey %)))
+       (filter :isForeignKey)
        (map add-fk-constraints-sql)))
 
 (defn drop-table-constraints-sql
   [table-fields]
   (->> table-fields
-       (filter #(= "Yes" (:isForeignKey %)))
+       (filter :isForeignKey)
        (map drop-fk-constraints-sql)))
 
 (defn idx-name
@@ -124,11 +142,11 @@
        (filter (fn [{:keys [cdmFieldName]}] (str/ends-with? cdmFieldName "_id")))
        (map drop-idx-sql)))
 
-(defn prepared-upsert-sql
-  [{:keys [fields cdmTableName] :as table}]
-  (let [field-names (map :cdmFieldName fields)
+(defn upsert-sql
+  [{:keys [cdmFields cdmTableName] :as table}]
+  (let [field-names (map :cdmFieldName cdmFields)
         field-names# (str/join "," field-names)
-        primary-keys (into #{} (comp (filter (fn [{:keys [isPrimaryKey]}] (= "Yes" isPrimaryKey))) (map :cdmFieldName)) fields)
+        primary-keys (into #{} (comp (filter :isPrimaryKey) (map :cdmFieldName)) cdmFields)
         primary-keys# (str/join "," primary-keys)
         non-primary-keys (set/difference (set field-names) primary-keys)
         non-primary-keys (str/join "," (map #(str % "=excluded." %) non-primary-keys))
@@ -139,13 +157,14 @@
           " (" field-names# ") VALUES (" placeholders ") "
           " ON CONFLICT (" primary-keys# ") DO UPDATE SET " non-primary-keys)]))
 
-(defn prepared-insert-sql
-  [{:keys [fields cdmTableName]}]
-  (let [field-names (map :cdmFieldName fields)
-        field-names# (str/join "," field-names)
-        placeholders (str/join "," (repeat (count field-names) "?"))]
-    [(str "INSERT INTO " cdmTableName
-          " (" field-names# ") VALUES (" placeholders ")")]))
+(defn insert-sql*
+  [{:keys [cdmFields cdmTableName] :as table}]
+  (when table
+    (let [field-names (map :cdmFieldName cdmFields)
+          field-names# (str/join "," field-names)
+          placeholders (str/join "," (repeat (count field-names) "?"))]
+      [(str "INSERT INTO " cdmTableName
+            " (" field-names# ") VALUES (" placeholders ")")])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -171,53 +190,65 @@
   :dialect)
 
 (defmulti insert-sql
-  "Return SQL insert statement to insert data into the table specified. "
+  "Return SQL insert statement to insert data into the table specified.
+  Returns 'nil' when no table definition for table specified."
   (fn [{:keys [dialect]} _table-name] dialect))
+
 ;;
 ;;
 ;;
 
 (defmethod create-tables-sql :default
-  [config]
-  (mapv (fn [{:keys [fields]}] (create-table-sql {:constraints false, :datatypes default-datatypes} fields))
-        (vals (cdm/model-structures config))))
+  [{:keys [cdmModel] :as config}]
+  (when-not cdmModel (throw (ex-info "missing :cdmModel in config" config)))
+  (mapv (fn [{:keys [cdmFields]}]
+          (create-table-sql {:constraints false, :datatypes default-datatypes} cdmFields))
+        (vals cdmModel)))
 
 (defmethod create-tables-sql :sqlite
-  [config]
-  (mapv (fn [{:keys [fields]}] (create-table-sql {:constraints true, :datatypes default-datatypes} fields))
-        (vals (cdm/model-structures config))))
+  [{:keys [cdmModel] :as config}]
+  (when-not cdmModel (throw (ex-info "missing :cdmModel in config" config)))
+  (mapv (fn [{:keys [cdmFields]}]
+          (create-table-sql {:constraints true, :datatypes default-datatypes} cdmFields))
+        (vals cdmModel)))
 
 (defmethod drop-tables-sql :default
-  [config]
-  (mapv drop-table-sql (map :cdmTableName (vals (cdm/model-structures config)))))
+  [{:keys [cdmModel] :as config}]
+  (when-not cdmModel (throw (ex-info "missing :cdmModel in config" config)))
+  (mapv drop-table-sql (map :cdmTableName (vals cdmModel))))
 
 (defmethod add-constraints-sql :default
-  [config]
-  (mapcat add-table-constraints-sql (map :fields (vals (cdm/model-structures config)))))
+  [{:keys [cdmModel] :as config}]
+  (when-not cdmModel (throw (ex-info "missing :cdmModel in config" config)))
+  (mapcat add-table-constraints-sql (map :cdmFields (vals cdmModel))))
 
 (defmethod add-constraints-sql :sqlite   ;; In SQLite, constraints are defined in table creation, so turn on FK support
   [_config]
   ["PRAGMA foreign_keys=1"])
 
 (defmethod drop-constraints-sql :default
-  [config]
-  (mapcat drop-table-constraints-sql (map :fields (vals (cdm/model-structures config)))))
+  [{:keys [cdmModel] :as config}]
+  (when-not cdmModel (throw (ex-info "missing :cdmModel in config" config)))
+  (mapcat drop-table-constraints-sql (map :cdmFields (vals cdmModel))))
 
 (defmethod drop-constraints-sql :sqlite
   [_config]
   ["PRAGMA foreign_keys=0"])
 
 (defmethod add-indices-sql :default
-  [config]
-  (mapcat add-table-indices (map :fields (vals (cdm/model-structures config)))))
+  [{:keys [cdmModel] :as config}]
+  (when-not cdmModel (throw (ex-info "missing :cdmModel in config" config)))
+  (mapcat add-table-indices (map :cdmFields (vals cdmModel))))
 
 (defmethod drop-indices-sql :default
-  [config] (mapcat drop-table-indices (map :fields (vals (cdm/model-structures config)))))
+  [{:keys [cdmModel] :as config}]
+  (when-not cdmModel (throw (ex-info "missing :cdmModel in config" config)))
+  (mapcat drop-table-indices (map :cdmFields (vals cdmModel))))
 
 (defmethod insert-sql :default
-  [config table-name]
-  (some-> (get (cdm/model-structures config) table-name)
-          (prepared-insert-sql)))
+  [{:keys [cdmModel] :as config} table-name]
+  (when-not cdmModel (throw (ex-info "missing :cdmModel in config" config)))
+  (insert-sql* (get cdmModel table-name)))
 
 (defn format
   [x]
@@ -226,14 +257,20 @@
     (map? x)    (sql/format x)))
 
 (comment
-  (insert-sql {} "concept")
-  (insert-sql {} "observation")
-  (cdm/model-structures {})
-  (map format (create-tables-sql {}))
-  (map format (create-tables-sql {:dialect :sqlite}))
-  (map format (add-constraints-sql {}))
-  (map format (add-constraints-sql {:dialect :sqlite}))
-  (map format (drop-constraints-sql {}))
-  (map format (drop-constraints-sql {:dialect :sqlite}))
-  (map format (add-indices-sql {}))
-  (map format (drop-tables-sql {})))
+  (def config (cdm/with-model-structures {}))
+  (keys config)
+  (keys (:cdmModel config))
+  (insert-sql config "concept")
+  (insert-sql config "observation")
+  (into #{} (map :cdmDatatype) (mapcat :cdmFields (vals (:cdmModel (cdm/with-model-structures {})))))
+
+  (def config (cdm/with-model-structures {}))
+  (create-tables-sql {})
+  (map format (create-tables-sql config))
+  (map format (create-tables-sql (assoc config :dialect :sqlite)))
+  (map format (add-constraints-sql config))
+  (map format (add-constraints-sql (assoc config :dialect :sqlite)))
+  (map format (drop-constraints-sql config))
+  (map format (drop-constraints-sql (assoc config :dialect :sqlite)))
+  (map format (add-indices-sql config))
+  (map format (drop-tables-sql config)))

@@ -6,6 +6,8 @@
 
 `iort` is a library and command-line utility to make use of the OMOP CDM.
 
+You can think of `iort` as a swiss-army knife for the OMOP CDM.
+
 Most current user-facing OMOP CDM tools depend upon `R`, but `iort` is written in Clojure and runs on the JVM, and so is also usable from other JVM languages such as Java. `iort` can be run from the command-line as a runnable 'uberjar', or from directly source code if Clojure is installed.
 
 As such, `iort` uses a simpler approach than the OHDSI tools, generating DDL statements directly from the canonical CSV specifications.
@@ -96,6 +98,38 @@ clj -M:run --create --dialect sqlite
 ```
 Databases such as SQLite cannot add foreign key constraints after database tables have been created, so you can give hints to `iort`
 so it generates the correct statements for the database type you are using.
+
+##### Create and import the OMOP CDM vocabulary 
+
+e.g. you have downloaded the latest CDM vocabulary from Athena, and want to initialise a new CDM database:
+
+```bash
+clj -M:postgresql:run -u jdbc:postgresql:omop_cdm --create --vocab ~/Downloads/vocabulary_download_v5
+```
+
+This will connect to the PostgreSQL database omop_cdm, create all of the tables, import the specified
+vocabulary files, and then add constraints and indexes. 
+
+If you want to use SQLite:
+
+```bash
+clj -M:sqlite:run -u jdbc:postgresql:omop_cdm.db --create --vocab ~/Downloads/vocabulary_download_v5
+```
+
+
+
+##### Remove indexes and turn off constraints
+
+```
+clj -M:postgresql:run -u jdbc:postgresql:omop_cdm --drop-constraints --drop-indexes
+```
+
+##### Add indexes and turn on constraints
+
+```
+clj -M:postgresql:run -u jdbc:postgresql:omop_cdm --add-constraints --add-indexes
+```
+
 
 
 # Why not use the `R` based OHDSI toolchain?

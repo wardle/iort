@@ -57,12 +57,17 @@
   [args]
   (let [{:keys [options arguments errors summary] :as parsed} (cli/parse-opts args cli-options)]
     (cond-> (assoc parsed :usage (usage summary))
+
+      ;; if there is no explicit dialect, derive from the JDBC URL
       (and (not (:dialect options)) (:jdbc-url options))
       (update :options assoc :dialect (jdbc-url->dialect (:jdbc-url options)))
+      ;; if there are no commands -> error
       (not (some commands (keys options)))
       (assoc :errors ["No command specified"])
+      ;; turn create into its individual actions
       (:create options)
       (update :options assoc :create-tables true :add-constraints true :add-indexes true)
+      ;; turn drop into its individual actions
       (:drop options)
       (update :options assoc :drop-tables true :drop-constraints true :drop-indexes true))))
 
