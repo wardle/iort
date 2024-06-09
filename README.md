@@ -1,5 +1,12 @@
 # `iort` - Interoperable Outcomes Research Tools
 
+
+[![Scc Count Badge](https://sloc.xyz/github/wardle/iort)](https://github.com/wardle/iort/)
+[![Scc Cocomo Badge](https://sloc.xyz/github/wardle/iort?category=cocomo&avg-wage=100000)](https://github.com/wardle/iort/)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/wardle/iort)](https://github.com/wardle/iort/releases/latest)
+[![Clojars Project](https://img.shields.io/clojars/v/com.eldrix/iort.svg)](https://clojars.org/com.eldrix/iort)
+[![cljdoc badge](https://cljdoc.org/badge/com.eldrix/iort)](https://cljdoc.org/d/com.eldrix/iort)
+
 > The Observational Medical Outcomes Partnership (OMOP) Common Data Model (CDM) is an open community data standard, designed to standardize the structure and content of observational data and to enable efficient analyses that can produce reliable evidence.
 >
 > See [https://www.ohdsi.org/data-standardization](https://www.ohdsi.org/data-standardization/) 
