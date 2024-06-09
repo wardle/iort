@@ -112,18 +112,35 @@
    {} m))
 
 (defn model-structures*
+  "Return CDM structures as a map of table name to table definition, with each
+  table definition containing :cdmFields with a sequence of fields.
+  Parameters: config - a map containing keys:
+  - :cdmVersion - version needed, may be omitted
+  - :schemas - a set of strings of schema names to limit result."
   [{:keys [cdmVersion schemas] :as config}]
-  (let [{:keys [tables fields]} (cdm cdmVersion)
-        table-filter (if (seq schemas) #(schemas (:schema %)) (constantly true))]
+  (let [{:keys [tables fields]} (cdm cdmVersion)]
     (if (and tables fields)
-      (let [fields-by-table (group-by :cdmTableName (map parse-model (read-csv (io/resource fields))))]
+      (let [table-filter    (if (seq schemas) #(schemas (:schema %)) (constantly true))
+            tables#         (->> (read-csv (io/resource tables))
+                                 (filter table-filter)
+                                 (map parse-model))
+            table-names     (into #{} (map :cdmTableName) tables#)
+            fields#         (->> (read-csv (io/resource fields))
+                                 (filter #(table-names (:cdmTableName %)))
+                                 (map parse-model))
+            fields-by-table (group-by :cdmTableName fields#)]
         (reduce (fn [acc {:keys [cdmTableName] :as table}]
                   (assoc acc cdmTableName (assoc table :cdmFields (get fields-by-table cdmTableName))))
                 {}
-                (->> (read-csv (io/resource tables))
-                     (filter table-filter)
-                     (map parse-model))))
+                tables#))
       (throw (ex-info "invalid CDM version" config)))))
+
+(defn available-schemas
+  ([]
+   (available-schemas nil))
+  ([cdmVersion]
+   (let [model (model-structures* {:cdmVersion cdmVersion})]
+     (into #{} (map :schema) (vals model)))))
 
 (s/fdef with-model-structures
   :args (s/cat :config (s/? ::config))
@@ -141,9 +158,10 @@
 
 (comment
   (require '[clojure.spec.test.alpha :as stest])
+  (available-schemas)
   (map parse-model (read-csv (io/resource (:tables (cdm)))))
   (read-csv (io/resource (:fields (cdm))))
-  (with-model-structures {})
+  (map :cdmTableName (vals (:cdmModel (with-model-structures {:schemas #{"CDM"}}))))
   (stest/instrument)
   supported-cdm-versions
   (cdm "5.4")
