@@ -68,7 +68,7 @@
 
 ;; CDM configuration specification
 
-(s/def ::config (s/keys :opt-un [::cdmModel ::cdmVersion]))
+(s/def ::config (s/keys :opt-un [::cdmModel ::cdmVersion ::schemas]))
 
 ;;
 ;; CDM models 
@@ -112,13 +112,17 @@
    {} m))
 
 (defn model-structures*
-  [{:keys [cdmVersion] :as config}]
-  (let [{:keys [tables fields]} (cdm cdmVersion)]
+  [{:keys [cdmVersion schemas] :as config}]
+  (let [{:keys [tables fields]} (cdm cdmVersion)
+        table-filter (if (seq schemas) #(schemas (:schema %)) (constantly true))]
     (if (and tables fields)
       (let [fields-by-table (group-by :cdmTableName (map parse-model (read-csv (io/resource fields))))]
         (reduce (fn [acc {:keys [cdmTableName] :as table}]
                   (assoc acc cdmTableName (assoc table :cdmFields (get fields-by-table cdmTableName))))
-                {} (map parse-model (read-csv (io/resource tables)))))
+                {}
+                (->> (read-csv (io/resource tables))
+                     (filter table-filter)
+                     (map parse-model))))
       (throw (ex-info "invalid CDM version" config)))))
 
 (s/fdef with-model-structures

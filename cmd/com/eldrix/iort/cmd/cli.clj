@@ -31,20 +31,29 @@
    [nil "--drop-tables" "Drop database tables"]
    [nil "--drop-constraints" "Drop database constraints"]
    [nil "--drop-indexes" "Drop database indexes"]
+   [nil "--schema SCHEMA" "Limit actions to the specified schema(s)"
+    :id :schemas :multi true :default #{} :update-fn conj]
    [nil "--vocab DIR" "Import vocabulary files from the directory specified"]
    ["-h" "--help"]])
 
-(def commands #{:create :drop
-                :create-tables :drop-tables
-                :add-constraints :drop-constraints
-                :add-indexes :drop-indexes
-                :vocab})
+(def commands
+  #{:create :drop
+    :create-tables :drop-tables
+    :add-constraints :drop-constraints
+    :add-indexes :drop-indexes
+    :vocab})
 
 (defn jdbc-url->dialect
   [url]
   (cond
     (str/starts-with? url "jdbc:sqlite:") :sqlite
     (str/starts-with? url "jdbc:postgresql:") :postgresql))
+
+(defn parse-schemas
+  [schemas]
+  (reduce
+   (fn [acc schema]
+     (into acc (map str/upper-case (str/split schema #",")))) #{} schemas))
 
 (defn parse-opts
   "Parse iort command line parameters. Returns a map with keys:
@@ -56,7 +65,8 @@
   :usage     - string containing full command line usage"
   [args]
   (let [{:keys [options arguments errors summary] :as parsed} (cli/parse-opts args cli-options)]
-    (cond-> (assoc parsed :usage (usage summary))
+    (cond-> (-> parsed (assoc :usage (usage summary))
+                (update-in [:options :schemas] parse-schemas))
 
       ;; if there is no explicit dialect, derive from the JDBC URL
       (and (not (:dialect options)) (:jdbc-url options))
@@ -72,4 +82,5 @@
       (update :options assoc :drop-tables true :drop-constraints true :drop-indexes true))))
 
 (comment
-  (parse-opts (str/split "-u jdbc:sqlite:test3.db --cdm-version 5.4 --create" #"\s")))
+  (parse-opts (str/split "-u jdbc:sqlite:test3.db --cdm-version 5.4 --create" #"\s"))
+  (parse-opts (str/split "--create-tables --schema VOCAB,cdm" #"\s")))

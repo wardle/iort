@@ -102,6 +102,23 @@ clj -M:run --create --dialect sqlite
 Databases such as SQLite cannot add foreign key constraints after database tables have been created, so you can give hints to `iort`
 so it generates the correct statements for the database type you are using.
 
+###### Generate SQL DDL statements but only for selected schema(s)
+
+```bash
+clj -M:run --create-tables --dialect sqlite --schema VOCAB
+```
+
+This is ideal if you are creating multiple SQLite databases and will join them only later during
+your analytics step.
+
+
+You can choose multiple schema, either by using `--schema VOCAB --schema CDM` or using comma-delimited values:
+
+```bash
+clj -M:run --create-tables --dialect sqlite --schema VOCAB,CDM
+```
+
+
 ##### Create and import the OMOP CDM vocabulary 
 
 e.g. you have downloaded the latest CDM vocabulary from Athena, and want to initialise a new CDM database:
