@@ -59,26 +59,27 @@ It will therefore possible to build an `iort` pipeline that will initialise and 
 
 # Current development roadmap
 
-`iort` is a new project and under active development. It is not yet fully functional but is being developed in the open.
+`iort` is a new project and under active development. It is now partly functional and is being developed in the open.
 
-Here is the current status:
+Here are the items from the roadmap already completed:
 
 - [x] Generate DDL statements to create database schema
 - [x] Generate DDL statements to add and remove database constraints
 - [x] Generate DDL statements to add and remove database indices
 - [x] Add optional dependencies for different JDBC drivers
-- [ ] Set up GitHub actions to test against a matrix of versions and databases
 - [x] Add code to read and parse the CDM v5 vocabulary definitions that can be downloaded from the OHDSI Athena service.
 - [x] Add options to select and create based on schema e.g. create tables only for 'CDM' or 'VOCAB' schema 
-- [ ] Provide a Clojure API to aid in transforming arbitrary source data into the OMOP CDM
 - [x] Build CLI entry point with options to generate or execute SQL
+- [x] Add ability to build an uberjar with all necessary database drivers for a 'swiss-army knife' approach
+
+Here are the items still pending:
+
+- [ ] Set up GitHub actions to test against a matrix of versions and databases
+- [ ] Provide a Clojure API to aid in transforming arbitrary source data into the OMOP CDM
 - [ ] Add a CDM HTTP server API to allow clients to consume CDM data if direct SQL access insufficient
 - [ ] Add a Clojure API to provide a FHIR facade around the core CDM vocabularies, potentially usable by [https://github.com/wardle/hades](https://github.com/wardle/hades) - requiring a trivial implementation
-- [x] Add ability to build an uberjar with all necessary database drivers for a 'swiss-army knife' approach
 - [ ] Add automation to copy CDM data from one database to another, and make available via CLI
-
-
-As SQLite allows multiple connections to different databases, it would be possible to build one database containing the VOCAB tables, and then dynamically link another database with CDM tables. Other databases allow multiple schema.
+- [ ] Tweak handling of schema in databases that support schema
 
 # Getting started
 
@@ -126,6 +127,7 @@ clj -M:run --create-tables --dialect sqlite --schema VOCAB,CDM
 ```
 
 
+
 ##### Create and import the OMOP CDM vocabulary 
 
 e.g. you have downloaded the latest CDM vocabulary from Athena, and want to initialise a new CDM database:
@@ -143,7 +145,28 @@ If you want to use SQLite:
 clj -M:sqlite:run -u jdbc:sqlite:omop_cdm.db --create --vocab ~/Downloads/vocabulary_download_v5
 ```
 
+For example, if you want to create a SQLite database with only the VOCAB CDM tables and populate them from data downloaded from Athena:
 
+```bash
+clj -M:sqlite:run --create-tables --jdbc-url jdbc:sqlite:cdm54.db --schema VOCAB --vocab ~/Downloads/vocabulary_download_v5
+```
+=>
+```bash
+% sqlite3 cdm54.db
+SQLite version 3.43.2 2023-10-10 13:08:14
+Enter ".help" for usage hints.
+sqlite> .tables
+concept                concept_synonym        source_to_concept_map
+concept_ancestor       domain                 vocabulary
+concept_class          drug_strength
+concept_relationship   relationship
+```
+
+SQLite allows you to create to multiple databases and perform joins across them, so this is a useful way
+to combine the standard CDM vocabulary with your clinical data derived from one or more of your 
+operational clinical data sources.
+
+With databases other than SQLite, you are more likely to store the CDM vocabulary within the same database as your CDM data.
 
 ##### Remove indexes and turn off constraints
 
